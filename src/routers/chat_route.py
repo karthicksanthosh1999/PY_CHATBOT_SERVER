@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from src.database.database import get_db
 from src.schema.chat_schema import ChatRequest, ChatResponse, ConversationResponse, MessageResponse, UpdateConversationRequest
 from src.services.chat_service import ChatService
+from src.dependencies.auth_dependency import get_logged_user
+from src.database.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -17,13 +19,13 @@ router = APIRouter(
 chat_service = ChatService()
 
 @router.post("/", response_model=ChatResponse)
-def chat(data: ChatRequest, db: Session = Depends(get_db)):
+def chat(data: ChatRequest, db: Session = Depends(get_db), current_user: User = Depends(get_logged_user)):
     try:
-        conversation_id, answer = chat_service.chat(db, question=data.question, conversation_id=data.conversation_id)
+        conversation_id, answer = chat_service.chat(db, user_id=current_user.id, question=data.question, conversation_id=data.conversation_id)
         return ChatResponse(
             db=db,
             conversation_id=conversation_id,
-            answer=answer
+            answer=answer,
         )
 
     except ValueError as error:
@@ -36,8 +38,8 @@ def chat(data: ChatRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=502, detail="Unable to generate chat response") from error
 
 @router.get("/", response_model= list[ConversationResponse])
-def get_conversations(db: Session = Depends(get_db)):
-    conversations = chat_service.get_conversations(db)
+def get_conversations(db: Session = Depends(get_db), current_user: User = Depends(get_logged_user)):
+    conversations = chat_service.get_conversations(db, user_id=current_user.id)
 
     return conversations
 

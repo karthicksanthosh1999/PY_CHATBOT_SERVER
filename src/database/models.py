@@ -6,7 +6,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.database import Base
 
-
 class User(Base):
     __tablename__ = "users"
 
@@ -17,7 +16,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    conversations: Mapped[list["Conversation"]] = relationship(back_populates="users", cascade="all, delete-orphan")
+    conversations: Mapped[list["Conversation"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
 class Conversation(Base):
@@ -35,8 +34,8 @@ class Conversation(Base):
         back_populates="conversation",
         cascade="all, delete-orphan"
     )
-    user_id: Mapped[int] = mapped_column(ForeignKey("user_id"), nullable=True, index=True)
-    user: Mapped["User"] = relationship(back_populates="conversations")
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    user: Mapped["User | None"] = relationship(back_populates="conversations")
 
 
 class Message(Base):

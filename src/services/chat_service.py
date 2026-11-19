@@ -10,6 +10,7 @@ from src.database.models import Conversation, Message
 load_dotenv()
 
 class ChatService:
+    
     def __init__(self):
         api_key = os.getenv("GROQ_API_KEY")
         self.model_name = os.getenv("MODEL_NAME")
@@ -23,11 +24,12 @@ class ChatService:
             api_key=api_key
         )
 
-    def chat(self, db:Session, question: str, conversation_id: int | None = None):
+    def chat(self, db:Session, user_id: int, question: str, conversation_id: int | None = None):
 
         if conversation_id is None:
             conversation = Conversation(
-                title = question[:200]   
+                title = question[:200],
+                user_id=user_id   
             )
             db.add(conversation)
             db.flush()
@@ -84,23 +86,25 @@ class ChatService:
 
         return conversation.id, answer
 
-    def get_conversations(self, db: Session):
+    def get_conversations(self, db: Session, user_id: int):
         statement = (
-            select(Conversation).order_by(Conversation.created_at)
+            select(Conversation)
+            .where(Conversation.user_id == user_id)
+            .order_by(Conversation.created_at.desc())
         )
 
         conversations = db.scalars(statement).all()
 
         return conversations
 
-    def get_messages(self, db: Session, conversation_id: int):
+    def get_messages(self, db: Session, conversation_id: int, user_id: int):
         conversation = db.get(Conversation, conversation_id)
 
         if conversation is None:
             raise ValueError("Conversation Not Found")
 
         statement = (
-            select(Message).where(Message.conversation_id == conversation_id).order_by(Message.created_at, Message.id)
+            select(Message).where(Message.conversation_id == conversation_id, Conversation.user_id == user_id).order_by(Message.created_at, Message.id)
         )
 
         messages = db.scalars(statement).all()
