@@ -44,9 +44,9 @@ def get_conversations(db: Session = Depends(get_db), current_user: User = Depend
     return conversations
 
 @router.get("/{conversation_id}/messages", response_model=list[MessageResponse])
-def get_messages(conversation_id: int, db: Session = Depends(get_db)):
+def get_messages(conversation_id: int, user_id: int, db: Session = Depends(get_db)):
     try:
-        return chat_service.get_messages(db, conversation_id=conversation_id)
+        return chat_service.get_messages(db, conversation_id=conversation_id, user_id=user_id)
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
