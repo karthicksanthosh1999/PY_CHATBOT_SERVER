@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.database.database import Base, engine
 from src.routers.chat_route import router as chat_router
 from src.routers.auth_route import router as auth_router
+from src.routers.document_route import router as document_router
 
 origins = [
     "http://localhost:5173",
@@ -28,6 +29,7 @@ Base.metadata.create_all(bind=engine)
 
 app.include_router(chat_router)
 app.include_router(auth_router)
+app.include_router(document_router)
 
 @app.get("/")
 def home():
