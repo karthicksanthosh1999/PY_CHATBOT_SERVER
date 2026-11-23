@@ -1,5 +1,6 @@
 import logging
 
+from fastapi.responses import StreamingResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,14 @@ router = APIRouter(
 )
 
 chat_service = ChatService()
+
+@router.post("/stream")
+def stream_chat( data: ChatRequest, db: Session = Depends(get_db), current_user: User = Depends(get_logged_user)):
+    return StreamingResponse(
+        chat_service.chat_stream( db=db, user_id=current_user.id, question=data.question, conversation_id=data.conversation_id),
+        media_type="text/event-stream",
+        headers={ "Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"}
+    )
 
 @router.post("/", response_model=ChatResponse)
 def chat(data: ChatRequest, db: Session = Depends(get_db), current_user: User = Depends(get_logged_user)):
@@ -43,7 +52,7 @@ def get_conversations(db: Session = Depends(get_db), current_user: User = Depend
 
     return conversations
 
-@router.get("/{conversation_id}/messages", response_model=list[MessageResponse])
+@router.get("/{conversation_id}/{user_id}/messages", response_model=list[MessageResponse])
 def get_messages(conversation_id: int, user_id: int, db: Session = Depends(get_db)):
     try:
         return chat_service.get_messages(db, conversation_id=conversation_id, user_id=user_id)
@@ -57,9 +66,9 @@ def update_conversation( conversation_id: int, data: UpdateConversationRequest, 
     except ValueError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
-@router.delete("/{conversation_id}")
-def delete_conversation(conversation_id:int, db: Session = Depends(get_db)):
+@router.delete("/{conversation_id}/{user_id}")
+def delete_conversation(conversation_id:int, user_id: int, db: Session = Depends(get_db)):
     try:
-        return chat_service.delete_conversation(db, conversation_id=conversation_id)
+        return chat_service.delete_conversation(db, conversation_id=conversation_id, user_id=user_id)
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
